@@ -97,10 +97,6 @@ M.handler = function(method, original_params, handler)
         -- create temporary buffer
         local tmp = api.nvim_create_buf(false, true)
 
-        if tmp == 0 then
-            u.echo("error creating temp buffer")
-        end
-
         -- apply buffer contents to temp buf
         local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
         api.nvim_buf_set_lines(tmp, 0, -1, false, lines)
