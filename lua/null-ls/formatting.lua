@@ -94,6 +94,18 @@ M.handler = function(method, original_params, handler)
 
     if method == methods.lsp.FORMATTING or method == methods.lsp.RANGE_FORMATTING then
         local bufnr = vim.uri_to_bufnr(original_params.textDocument.uri)
+        -- create temporary buffer
+        local tmp = api.nvim_create_buf(false, true)
+
+        if tmp == 0 then
+            u.echo("error creating temp buffer")
+        end
+
+        -- apply buffer contents to temp buf
+        local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        api.nvim_buf_set_lines(tmp, 0, -1, false, lines)
+        original_params.bufnr = tmp
+
         require("null-ls.generators").run_registered_sequentially({
             filetype = api.nvim_buf_get_option(bufnr, "filetype"),
             method = methods.map[method],
@@ -104,6 +116,13 @@ M.handler = function(method, original_params, handler)
                 M.apply_edits(edits, params)
             end,
             after_all = function()
+                -- apply edits from tmp buf
+                local result_lines = api.nvim_buf_get_lines(tmp, 0, -1, false)
+                api.nvim_buf_set_lines(bufnr, 0, -1, false, result_lines)
+
+                -- unload tmp buf
+                api.nvim_buf_delete(tmp, { force = true })
+
                 -- call original handler with empty response to avoid formatting_sync timeout
                 handler(nil, method, nil, original_params.client_id, bufnr)
             end,
